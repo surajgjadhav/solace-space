@@ -360,51 +360,76 @@ def generate_assistant_reply(
 
 CSS = """
 :root {
-  --solace-bg: #080b16;
-  --solace-panel: rgba(18, 23, 42, 0.86);
-  --solace-panel-strong: rgba(25, 31, 58, 0.96);
-  --solace-line: rgba(255, 255, 255, 0.13);
-  --solace-text: #f7f8ff;
-  --solace-muted: #b9bfd9;
+  --solace-deep: #160f2c;
+  --solace-room: #26184a;
+  --solace-console: #f7f0dc;
+  --solace-console-edge: #d8c8a7;
+  --solace-panel: rgba(37, 24, 72, 0.82);
+  --solace-panel-strong: rgba(24, 17, 48, 0.96);
+  --solace-line: rgba(245, 235, 207, 0.18);
+  --solace-text: #fffaf0;
+  --solace-muted: #d8cde8;
   --joy: #ffd84d;
   --sadness: #5ca9ff;
-  --fear: #b58cff;
-  --anger: #ff6262;
-  --disgust: #62d68a;
+  --fear: #b892ff;
+  --anger: #ff5b56;
+  --disgust: #55d487;
+  --memory-cyan: #73e2ff;
+  --memory-pink: #ff8acf;
 }
 
 body,
 .gradio-container {
   background:
-    radial-gradient(circle at 14% 16%, rgba(255, 216, 77, 0.18), transparent 23rem),
-    radial-gradient(circle at 84% 18%, rgba(181, 140, 255, 0.18), transparent 24rem),
-    radial-gradient(circle at 62% 78%, rgba(92, 169, 255, 0.16), transparent 26rem),
-    linear-gradient(145deg, #060814 0%, #111735 52%, #090c18 100%) !important;
+    linear-gradient(90deg, rgba(255, 216, 77, 0.16) 0 1px, transparent 1px 72px),
+    linear-gradient(0deg, rgba(115, 226, 255, 0.10) 0 1px, transparent 1px 88px),
+    linear-gradient(140deg, #17102f 0%, #342264 42%, #1d143e 68%, #0d1023 100%) !important;
   color: var(--solace-text);
   min-height: 100vh;
 }
 
 .solace-app {
-  max-width: 1180px;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 0 18px 24px;
 }
 
 .solace-header {
-  padding: 26px 0 14px;
+  padding: 26px 0 16px;
   border-bottom: 1px solid var(--solace-line);
+  position: relative;
+}
+
+.solace-header::after {
+  background: linear-gradient(
+    90deg,
+    var(--joy),
+    var(--sadness),
+    var(--fear),
+    var(--anger),
+    var(--disgust)
+  );
+  border-radius: 999px;
+  bottom: -2px;
+  content: "";
+  height: 3px;
+  left: 0;
+  position: absolute;
+  width: min(420px, 100%);
 }
 
 .solace-title {
   color: var(--solace-text);
-  font-size: 36px;
+  font-size: 38px;
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: 0;
   margin: 0;
+  text-shadow: 0 0 18px rgba(255, 216, 77, 0.26);
 }
 
 .solace-subtitle {
-  color: var(--solace-muted);
+  color: #e6dcf5;
   font-size: 15px;
   margin: 8px 0 0;
 }
@@ -412,15 +437,18 @@ body,
 .emotion-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(120px, 1fr));
-  gap: 10px;
-  margin: 18px 0 14px;
+  gap: 12px;
+  margin: 18px 0 16px;
 }
 
 .emotion-card {
   align-items: center;
-  background: var(--solace-panel);
-  border: 1px solid var(--solace-line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035)),
+    var(--solace-panel);
+  border: 1px solid color-mix(in srgb, var(--emotion) 58%, rgba(255, 255, 255, 0.2));
   border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 28px rgba(0, 0, 0, 0.16);
   display: flex;
   gap: 10px;
   min-height: 66px;
@@ -429,7 +457,8 @@ body,
 
 .emotion-core {
   border-radius: 50%;
-  box-shadow: 0 0 24px currentColor;
+  background: currentColor;
+  box-shadow: 0 0 18px currentColor, inset 0 0 8px rgba(255, 255, 255, 0.52);
   color: var(--emotion);
   flex: 0 0 24px;
   height: 24px;
@@ -444,40 +473,82 @@ body,
 }
 
 .emotion-tone {
-  color: var(--solace-muted);
+  color: #d9d0e8;
   font-size: 12px;
   line-height: 1.2;
   margin-top: 3px;
 }
 
 #solace-chatbot {
-  background: rgba(9, 13, 27, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(247, 240, 220, 0.10), rgba(247, 240, 220, 0.035)),
+    rgba(20, 15, 42, 0.86);
+  border: 1px solid rgba(247, 240, 220, 0.28);
   border-radius: 8px;
-  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.28), inset 0 0 50px rgba(92, 169, 255, 0.05);
+  box-shadow:
+    0 20px 70px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 -18px 50px rgba(255, 216, 77, 0.055);
   min-height: 540px;
 }
 
-#solace-chatbot .message {
+#solace-chatbot .message,
+#solace-chatbot .message-content,
+#solace-chatbot .user-message,
+#solace-chatbot .bot-message {
   border-radius: 8px !important;
   line-height: 1.55;
 }
 
-#solace-chatbot .message.user {
-  background: #fff2a8 !important;
-  color: #211a00 !important;
-  border: 1px solid rgba(255, 216, 77, 0.75);
+#solace-chatbot .message.user,
+#solace-chatbot .user-message {
+  background: linear-gradient(180deg, #4c347e 0%, #35245e 100%) !important;
+  border: 1px solid rgba(255, 216, 77, 0.72) !important;
+  box-shadow: 0 8px 28px rgba(255, 216, 77, 0.14) !important;
+  color: #fffaf0 !important;
 }
 
 #solace-chatbot .message.bot,
-#solace-chatbot .message.assistant {
-  background: #162241 !important;
+#solace-chatbot .message.assistant,
+#solace-chatbot .bot-message {
+  background: linear-gradient(180deg, #173256 0%, #102440 100%) !important;
+  border: 1px solid rgba(92, 169, 255, 0.56) !important;
+  box-shadow: 0 8px 28px rgba(92, 169, 255, 0.12) !important;
   color: #f4f7ff !important;
-  border: 1px solid rgba(92, 169, 255, 0.42);
+}
+
+#solace-chatbot .message.user *,
+#solace-chatbot .user-message * {
+  color: #fffaf0 !important;
+}
+
+#solace-chatbot .message.bot *,
+#solace-chatbot .message.assistant *,
+#solace-chatbot .bot-message * {
+  color: #f4f7ff !important;
+}
+
+#solace-chatbot .message-content,
+#solace-chatbot .message-content *,
+#solace-chatbot .prose,
+#solace-chatbot .prose *,
+#solace-chatbot .md,
+#solace-chatbot .md *,
+#solace-chatbot p {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+#solace-chatbot .message p,
+#solace-chatbot .user-message p,
+#solace-chatbot .bot-message p {
+  margin: 0 !important;
 }
 
 .quick-row {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .quick-tool button,
@@ -487,22 +558,31 @@ body,
 }
 
 #send-button {
-  background: linear-gradient(180deg, #ffe980 0%, #ffd84d 100%) !important;
+  background: linear-gradient(180deg, #fff0a3 0%, #ffd84d 100%) !important;
   border: 1px solid rgba(255, 216, 77, 0.82) !important;
   color: #1f1a03 !important;
+  box-shadow: 0 0 20px rgba(255, 216, 77, 0.20) !important;
 }
 
 .quick-tool button {
-  background: rgba(25, 31, 58, 0.94) !important;
-  border: 1px solid rgba(181, 140, 255, 0.38) !important;
+  background: rgba(42, 28, 82, 0.94) !important;
+  border: 1px solid rgba(184, 146, 255, 0.44) !important;
   color: var(--solace-text) !important;
   min-height: 42px;
 }
 
+.quick-tool button:hover {
+  background: rgba(58, 38, 108, 0.98) !important;
+  border-color: rgba(115, 226, 255, 0.58) !important;
+}
+
 #message-box textarea {
-  background: var(--solace-panel-strong) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    var(--solace-panel-strong) !important;
   color: var(--solace-text) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(247, 240, 220, 0.24) !important;
+  border-radius: 8px !important;
 }
 
 #message-box textarea::placeholder {
