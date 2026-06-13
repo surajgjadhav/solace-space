@@ -1,6 +1,48 @@
+---
+title: Solace Space
+emoji: 💛
+colorFrom: yellow
+colorTo: blue
+sdk: gradio
+sdk_version: 5.0.0
+python_version: 3.10
+app_file: app.py
+fullWidth: true
+header: mini
+short_description: A local emotional-support companion powered by SolaceLLM.
+models:
+  - build-small-hackathon/solace-llm-GGUF
+tags:
+  - gradio
+  - llama-cpp
+  - gguf
+  - mental-health
+  - emotional-support
+  - local-llm
+preload_from_hub:
+  - build-small-hackathon/solace-llm-GGUF
+---
+
 # Solace Space
 
 Solace Space is a local Gradio chat app for an emotional companion experience powered by a GGUF model through `llama-cpp-python`.
+
+## Hugging Face Space
+
+This repository is configured as a Gradio Space through the YAML block at the
+top of this `README.md`. Hugging Face reads that block to decide how the Space
+is built and displayed.
+
+Important Space settings used here:
+
+- `sdk: gradio`: runs the project as a Gradio Space.
+- `app_file: app.py`: uses `app.py` as the launch entrypoint.
+- `python_version: 3.10`: asks Hugging Face to run the Space with Python 3.10.
+- `sdk_version: 5.0.0`: pins the Gradio runtime family used by the Space.
+- `fullWidth: true`: gives the chat UI enough horizontal room.
+- `header: mini`: keeps the Hugging Face frame compact so the app feels more immersive.
+- `models`: declares the GGUF model repository used by the app.
+- `preload_from_hub`: asks Hugging Face to preload the model repo during build/startup to reduce first-request download time.
 
 ## Setup
 
