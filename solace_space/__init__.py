@@ -1,0 +1,2 @@
+"""Solace Space application package."""
+
