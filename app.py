@@ -531,33 +531,37 @@ def generate_assistant_reply(
 
 CSS = """
 :root {
-  --ink: #fbf7ee;
-  --muted: #cabfe2;
-  --console: rgba(26, 18, 52, 0.78);
-  --console-strong: rgba(20, 15, 39, 0.95);
-  --line: rgba(255, 245, 218, 0.18);
-  --joy: #ffd84d;
-  --sadness: #5ca9ff;
-  --fear: #b78cff;
-  --anger: #ff5b56;
-  --disgust: #59d985;
-  --memory: #77e5ff;
-  --dream: #ff87cf;
+  --ink: #29314a;
+  --chat-ink: #1f2328;
+  --muted: #68708d;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-strong: #ffffff;
+  --soft-blue: #eef7ff;
+  --soft-lavender: #f4f0ff;
+  --line: rgba(91, 107, 143, 0.18);
+  --joy: #f6c84f;
+  --sadness: #6aa6df;
+  --fear: #a78bd9;
+  --anger: #e5746c;
+  --disgust: #6dbf8b;
+  --memory: #62b8d6;
+  --dream: #df8fbf;
 }
 
 body,
 .gradio-container {
   background:
-    radial-gradient(circle at 18% 12%, rgba(255, 216, 77, 0.20), transparent 25rem),
-    radial-gradient(circle at 84% 20%, rgba(183, 140, 255, 0.22), transparent 28rem),
-    radial-gradient(circle at 56% 88%, rgba(119, 229, 255, 0.14), transparent 30rem),
-    linear-gradient(135deg, #120b27 0%, #2b1b55 42%, #101833 100%) !important;
+    radial-gradient(circle at 16% 8%, rgba(255, 226, 126, 0.34), transparent 23rem),
+    radial-gradient(circle at 88% 14%, rgba(183, 216, 255, 0.44), transparent 28rem),
+    radial-gradient(circle at 54% 92%, rgba(213, 201, 255, 0.38), transparent 28rem),
+    linear-gradient(135deg, #fff8ea 0%, #eef7ff 44%, #f6f1ff 100%) !important;
   color: var(--ink);
   min-height: 100vh;
 }
 
 .gradio-container {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--ink);
 }
 
 .solace-app {
@@ -583,11 +587,11 @@ body,
 
 .memory-logo {
   background:
-    radial-gradient(circle at 34% 28%, #fff7b8 0 18%, transparent 19%),
-    radial-gradient(circle at 50% 50%, var(--joy), #f79d45 72%);
-  border: 1px solid rgba(255, 255, 255, 0.54);
+    radial-gradient(circle at 34% 28%, #fff9cf 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 50%, #ffd86a, #f3a95f 72%);
+  border: 1px solid rgba(255, 255, 255, 0.86);
   border-radius: 50%;
-  box-shadow: 0 0 34px rgba(255, 216, 77, 0.42), inset 0 -12px 18px rgba(143, 74, 18, 0.16);
+  box-shadow: 0 14px 34px rgba(235, 179, 68, 0.22), inset 0 -12px 18px rgba(143, 74, 18, 0.10);
   flex: 0 0 54px;
   height: 54px;
   width: 54px;
@@ -600,7 +604,7 @@ body,
   line-height: 1.05;
   letter-spacing: 0;
   margin: 0;
-  text-shadow: 0 0 22px rgba(255, 216, 77, 0.18);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .solace-subtitle {
@@ -618,13 +622,14 @@ body,
 }
 
 .system-chip {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.70);
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: #efe6ff;
+  color: #56607c;
   font-size: 12px;
   font-weight: 700;
   padding: 7px 10px;
+  box-shadow: 0 8px 24px rgba(91, 107, 143, 0.08);
 }
 
 .console-grid {
@@ -637,11 +642,11 @@ body,
 .side-console,
 .chat-shell {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.03)),
-    var(--console);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.76)),
+    var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 22px 60px rgba(83, 102, 145, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .side-console {
@@ -662,7 +667,7 @@ body,
 .pulse-dot {
   background: var(--memory);
   border-radius: 50%;
-  box-shadow: 0 0 18px var(--memory);
+  box-shadow: 0 0 16px rgba(98, 184, 214, 0.46);
   height: 9px;
   width: 9px;
 }
@@ -676,9 +681,9 @@ body,
 .emotion-card {
   align-items: center;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--emotion) 18%, transparent), rgba(255, 255, 255, 0.035)),
-    rgba(255, 255, 255, 0.055);
-  border: 1px solid color-mix(in srgb, var(--emotion) 50%, rgba(255, 255, 255, 0.14));
+    linear-gradient(90deg, color-mix(in srgb, var(--emotion) 16%, #ffffff), rgba(255, 255, 255, 0.94)),
+    #ffffff;
+  border: 1px solid color-mix(in srgb, var(--emotion) 32%, rgba(91, 107, 143, 0.14));
   border-radius: 14px;
   box-shadow: inset 4px 0 0 var(--emotion);
   display: flex;
@@ -690,12 +695,12 @@ body,
 .emotion-avatar {
   align-items: center;
   background:
-    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.72), transparent 16%),
-    radial-gradient(circle at 50% 62%, var(--emotion), color-mix(in srgb, var(--emotion) 70%, #151029));
-  border: 1px solid rgba(255, 255, 255, 0.48);
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.82), transparent 16%),
+    radial-gradient(circle at 50% 62%, color-mix(in srgb, var(--emotion) 76%, #ffffff), var(--emotion));
+  border: 1px solid rgba(255, 255, 255, 0.92);
   border-radius: 50%;
-  box-shadow: 0 0 22px color-mix(in srgb, var(--emotion) 58%, transparent);
-  color: #161224;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--emotion) 28%, transparent);
+  color: #30405b;
   display: flex;
   flex: 0 0 48px;
   font-size: 23px;
@@ -729,10 +734,10 @@ body,
 .memory-orb {
   aspect-ratio: 1;
   background:
-    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.78), transparent 18%),
-    radial-gradient(circle, var(--orb), color-mix(in srgb, var(--orb) 55%, #160f2c));
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.82), transparent 18%),
+    radial-gradient(circle, color-mix(in srgb, var(--orb) 48%, #ffffff), color-mix(in srgb, var(--orb) 78%, #ffffff));
   border-radius: 50%;
-  box-shadow: 0 0 20px color-mix(in srgb, var(--orb) 42%, transparent);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--orb) 20%, transparent);
 }
 
 .chat-shell {
@@ -761,13 +766,13 @@ body,
 
 #solace-chatbot {
   background:
-    linear-gradient(180deg, rgba(7, 10, 24, 0.52), rgba(7, 10, 24, 0.88)),
-    rgba(10, 11, 24, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(246, 250, 255, 0.96)),
+    var(--soft-blue);
+  border: 1px solid rgba(120, 148, 190, 0.22);
   border-radius: 14px;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    inset 0 -24px 70px rgba(119, 229, 255, 0.04);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    inset 0 -24px 70px rgba(106, 166, 223, 0.08);
   min-height: 540px;
 }
 
@@ -781,30 +786,30 @@ body,
 
 #solace-chatbot .message.user,
 #solace-chatbot .user-message {
-  background: linear-gradient(180deg, #4e367f 0%, #322354 100%) !important;
-  border: 1px solid rgba(255, 216, 77, 0.72) !important;
-  box-shadow: 0 8px 28px rgba(255, 216, 77, 0.14) !important;
-  color: var(--ink) !important;
+  background: linear-gradient(180deg, #fff5c7 0%, #ffe69d 100%) !important;
+  border: 1px solid rgba(224, 174, 58, 0.38) !important;
+  box-shadow: 0 10px 26px rgba(224, 174, 58, 0.16) !important;
+  color: var(--chat-ink) !important;
 }
 
 #solace-chatbot .message.bot,
 #solace-chatbot .message.assistant,
 #solace-chatbot .bot-message {
-  background: linear-gradient(180deg, #153961 0%, #10243f 100%) !important;
-  border: 1px solid rgba(92, 169, 255, 0.56) !important;
-  box-shadow: 0 8px 28px rgba(92, 169, 255, 0.12) !important;
-  color: #f4f7ff !important;
+  background: linear-gradient(180deg, #ffffff 0%, #edf6ff 100%) !important;
+  border: 1px solid rgba(106, 166, 223, 0.30) !important;
+  box-shadow: 0 10px 26px rgba(94, 134, 187, 0.13) !important;
+  color: var(--chat-ink) !important;
 }
 
 #solace-chatbot .message.user *,
 #solace-chatbot .user-message * {
-  color: var(--ink) !important;
+  color: var(--chat-ink) !important;
 }
 
 #solace-chatbot .message.bot *,
 #solace-chatbot .message.assistant *,
 #solace-chatbot .bot-message * {
-  color: #f4f7ff !important;
+  color: var(--chat-ink) !important;
 }
 
 #solace-chatbot .message-content,
@@ -836,10 +841,10 @@ body,
 
 #solace-chatbot .typing-loader span {
   animation: solaceTyping 1.1s ease-in-out infinite;
-  background: #77e5ff !important;
+  background: #6aa6df !important;
   border: 0 !important;
   border-radius: 50% !important;
-  box-shadow: 0 0 12px rgba(119, 229, 255, 0.48) !important;
+  box-shadow: 0 0 10px rgba(106, 166, 223, 0.38) !important;
   display: inline-block;
   height: 7px;
   opacity: 0.38;
@@ -879,36 +884,38 @@ body,
 }
 
 #send-button {
-  background: linear-gradient(180deg, #fff0a3 0%, #ffd84d 100%) !important;
-  border: 1px solid rgba(255, 216, 77, 0.82) !important;
-  color: #1f1a03 !important;
-  box-shadow: 0 0 20px rgba(255, 216, 77, 0.20) !important;
+  background: linear-gradient(180deg, #5e9fd8 0%, #4b87c5 100%) !important;
+  border: 1px solid rgba(75, 135, 197, 0.54) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px rgba(75, 135, 197, 0.22) !important;
 }
 
 .quick-tool button {
-  background: rgba(255, 255, 255, 0.075) !important;
-  border: 1px solid rgba(184, 146, 255, 0.36) !important;
+  background: rgba(255, 255, 255, 0.74) !important;
+  border: 1px solid rgba(148, 131, 192, 0.24) !important;
   color: var(--ink) !important;
   min-height: 44px;
   width: 100%;
+  box-shadow: 0 8px 20px rgba(91, 107, 143, 0.08) !important;
 }
 
 .quick-tool button:hover {
-  background: rgba(58, 38, 108, 0.98) !important;
-  border-color: rgba(115, 226, 255, 0.58) !important;
+  background: #f5f0ff !important;
+  border-color: rgba(167, 139, 217, 0.42) !important;
 }
 
 #message-box textarea {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-    var(--console-strong) !important;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.96)),
+    var(--surface-strong) !important;
   color: var(--ink) !important;
-  border: 1px solid rgba(247, 240, 220, 0.24) !important;
+  border: 1px solid rgba(120, 148, 190, 0.28) !important;
   border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
 }
 
 #message-box textarea::placeholder {
-  color: #aeb6d4 !important;
+  color: #7c849e !important;
 }
 
 footer {
