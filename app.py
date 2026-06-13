@@ -151,16 +151,38 @@ If you're not in immediate danger, please still reach out to a trusted person or
 
 
 QUICK_PROMPTS = {
-    "Deep Breathing Exercise": (
-        "Guide me through a short deep breathing exercise for the emotion I am feeling right now."
+    "Ground Fear": (
+        "I am feeling anxious or afraid. Help me name what I am feeling, "
+        "separate facts from feared possibilities, and choose one grounding "
+        "step I can do right now."
     ),
-    "Journal Prompt": (
-        "Give me one gentle journal prompt to understand what I am feeling without judging it."
+    "Soften Sadness": (
+        "I am feeling sad or heavy. Help me reflect on what hurts, respond "
+        "with self-compassion, and choose one small care action."
     ),
-    "Share a Win": (
-        "I want to share a small win. Help me savor it and notice why it matters."
+    "Pause Anger": (
+        "I am feeling angry. Help me understand what boundary, hurt, or need "
+        "is underneath it, pause before reacting, and choose a values-aligned "
+        "next step."
+    ),
+    "Reset Overwhelm": (
+        "I feel overwhelmed, ashamed, or disgusted with the situation. Help "
+        "me settle my body, reduce judgment, and find one reset or boundary "
+        "step."
+    ),
+    "Channel Joy": (
+        "I am feeling happy, proud, or relieved. Help me savor this moment, "
+        "name what it says about my values or effort, and channel it into "
+        "gratitude, connection, or a meaningful next step."
     ),
 }
+
+
+LOADING_MESSAGE = """
+<div class="typing-loader" role="status" aria-live="polite" aria-label="SolaceLLM is thinking">
+  <span></span><span></span><span></span>
+</div>
+"""
 
 
 def contains_crisis_language(text: str) -> bool:
@@ -468,15 +490,19 @@ def generate_assistant_reply(
         return
 
     latest_user_message = messages[-1]["content"]
-    messages.append({"role": "assistant", "content": ""})
 
     if contains_crisis_language(latest_user_message):
-        messages[-1]["content"] = CRISIS_MESSAGE
+        messages.append({"role": "assistant", "content": CRISIS_MESSAGE})
         yield messages
         return
 
+    messages.append({"role": "assistant", "content": LOADING_MESSAGE})
+    yield messages
+
     try:
         for token in stream_model_reply(messages[:-1]):
+            if messages[-1]["content"] == LOADING_MESSAGE:
+                messages[-1]["content"] = ""
             messages[-1]["content"] += token
             yield messages
     except (FileNotFoundError, RuntimeError) as exc:
@@ -505,135 +531,243 @@ def generate_assistant_reply(
 
 CSS = """
 :root {
-  --solace-deep: #160f2c;
-  --solace-room: #26184a;
-  --solace-console: #f7f0dc;
-  --solace-console-edge: #d8c8a7;
-  --solace-panel: rgba(37, 24, 72, 0.82);
-  --solace-panel-strong: rgba(24, 17, 48, 0.96);
-  --solace-line: rgba(245, 235, 207, 0.18);
-  --solace-text: #fffaf0;
-  --solace-muted: #d8cde8;
+  --ink: #fbf7ee;
+  --muted: #cabfe2;
+  --console: rgba(26, 18, 52, 0.78);
+  --console-strong: rgba(20, 15, 39, 0.95);
+  --line: rgba(255, 245, 218, 0.18);
   --joy: #ffd84d;
   --sadness: #5ca9ff;
-  --fear: #b892ff;
+  --fear: #b78cff;
   --anger: #ff5b56;
-  --disgust: #55d487;
-  --memory-cyan: #73e2ff;
-  --memory-pink: #ff8acf;
+  --disgust: #59d985;
+  --memory: #77e5ff;
+  --dream: #ff87cf;
 }
 
 body,
 .gradio-container {
   background:
-    linear-gradient(90deg, rgba(255, 216, 77, 0.16) 0 1px, transparent 1px 72px),
-    linear-gradient(0deg, rgba(115, 226, 255, 0.10) 0 1px, transparent 1px 88px),
-    linear-gradient(140deg, #17102f 0%, #342264 42%, #1d143e 68%, #0d1023 100%) !important;
-  color: var(--solace-text);
+    radial-gradient(circle at 18% 12%, rgba(255, 216, 77, 0.20), transparent 25rem),
+    radial-gradient(circle at 84% 20%, rgba(183, 140, 255, 0.22), transparent 28rem),
+    radial-gradient(circle at 56% 88%, rgba(119, 229, 255, 0.14), transparent 30rem),
+    linear-gradient(135deg, #120b27 0%, #2b1b55 42%, #101833 100%) !important;
+  color: var(--ink);
   min-height: 100vh;
 }
 
+.gradio-container {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 .solace-app {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 18px 24px;
+  padding: 20px;
 }
 
 .solace-header {
-  padding: 26px 0 16px;
-  border-bottom: 1px solid var(--solace-line);
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 8px 0 18px;
   position: relative;
 }
 
-.solace-header::after {
-  background: linear-gradient(
-    90deg,
-    var(--joy),
-    var(--sadness),
-    var(--fear),
-    var(--anger),
-    var(--disgust)
-  );
-  border-radius: 999px;
-  bottom: -2px;
-  content: "";
-  height: 3px;
-  left: 0;
-  position: absolute;
-  width: min(420px, 100%);
+.brand-mark {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.memory-logo {
+  background:
+    radial-gradient(circle at 34% 28%, #fff7b8 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 50%, var(--joy), #f79d45 72%);
+  border: 1px solid rgba(255, 255, 255, 0.54);
+  border-radius: 50%;
+  box-shadow: 0 0 34px rgba(255, 216, 77, 0.42), inset 0 -12px 18px rgba(143, 74, 18, 0.16);
+  flex: 0 0 54px;
+  height: 54px;
+  width: 54px;
 }
 
 .solace-title {
-  color: var(--solace-text);
-  font-size: 38px;
+  color: var(--ink);
+  font-size: 34px;
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: 0;
   margin: 0;
-  text-shadow: 0 0 18px rgba(255, 216, 77, 0.26);
+  text-shadow: 0 0 22px rgba(255, 216, 77, 0.18);
 }
 
 .solace-subtitle {
-  color: #e6dcf5;
+  color: var(--muted);
   font-size: 15px;
-  margin: 8px 0 0;
+  margin: 6px 0 0;
 }
 
-.emotion-grid {
+.system-strip {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.system-chip {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #efe6ff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+}
+
+.console-grid {
+  align-items: stretch;
   display: grid;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
-  gap: 12px;
-  margin: 18px 0 16px;
+  gap: 18px;
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+}
+
+.side-console,
+.chat-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.03)),
+    var(--console);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.side-console {
+  padding: 16px;
+}
+
+.panel-title {
+  align-items: center;
+  color: var(--ink);
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  justify-content: space-between;
+  letter-spacing: 0;
+  margin-bottom: 12px;
+}
+
+.pulse-dot {
+  background: var(--memory);
+  border-radius: 50%;
+  box-shadow: 0 0 18px var(--memory);
+  height: 9px;
+  width: 9px;
+}
+
+.emotion-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .emotion-card {
   align-items: center;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.035)),
-    var(--solace-panel);
-  border: 1px solid color-mix(in srgb, var(--emotion) 58%, rgba(255, 255, 255, 0.2));
-  border-radius: 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 28px rgba(0, 0, 0, 0.16);
+    linear-gradient(90deg, color-mix(in srgb, var(--emotion) 18%, transparent), rgba(255, 255, 255, 0.035)),
+    rgba(255, 255, 255, 0.055);
+  border: 1px solid color-mix(in srgb, var(--emotion) 50%, rgba(255, 255, 255, 0.14));
+  border-radius: 14px;
+  box-shadow: inset 4px 0 0 var(--emotion);
   display: flex;
-  gap: 10px;
-  min-height: 66px;
+  gap: 12px;
+  min-height: 74px;
   padding: 12px;
 }
 
-.emotion-core {
+.emotion-avatar {
+  align-items: center;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.72), transparent 16%),
+    radial-gradient(circle at 50% 62%, var(--emotion), color-mix(in srgb, var(--emotion) 70%, #151029));
+  border: 1px solid rgba(255, 255, 255, 0.48);
   border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 18px currentColor, inset 0 0 8px rgba(255, 255, 255, 0.52);
-  color: var(--emotion);
-  flex: 0 0 24px;
-  height: 24px;
-  width: 24px;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--emotion) 58%, transparent);
+  color: #161224;
+  display: flex;
+  flex: 0 0 48px;
+  font-size: 23px;
+  font-weight: 900;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
 }
 
 .emotion-label {
-  color: var(--solace-text);
+  color: var(--ink);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.15;
 }
 
 .emotion-tone {
-  color: #d9d0e8;
+  color: var(--muted);
   font-size: 12px;
-  line-height: 1.2;
-  margin-top: 3px;
+  line-height: 1.35;
+  margin-top: 5px;
+}
+
+.memory-rail {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 16px 0 4px;
+}
+
+.memory-orb {
+  aspect-ratio: 1;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.78), transparent 18%),
+    radial-gradient(circle, var(--orb), color-mix(in srgb, var(--orb) 55%, #160f2c));
+  border-radius: 50%;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--orb) 42%, transparent);
+}
+
+.chat-shell {
+  padding: 14px;
+}
+
+.chat-topbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.chat-title {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.chat-meta {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 #solace-chatbot {
   background:
-    linear-gradient(180deg, rgba(247, 240, 220, 0.10), rgba(247, 240, 220, 0.035)),
-    rgba(20, 15, 42, 0.86);
-  border: 1px solid rgba(247, 240, 220, 0.28);
-  border-radius: 8px;
+    linear-gradient(180deg, rgba(7, 10, 24, 0.52), rgba(7, 10, 24, 0.88)),
+    rgba(10, 11, 24, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
   box-shadow:
-    0 20px 70px rgba(0, 0, 0, 0.32),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 -18px 50px rgba(255, 216, 77, 0.055);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 -24px 70px rgba(119, 229, 255, 0.04);
   min-height: 540px;
 }
 
@@ -647,16 +781,16 @@ body,
 
 #solace-chatbot .message.user,
 #solace-chatbot .user-message {
-  background: linear-gradient(180deg, #4c347e 0%, #35245e 100%) !important;
+  background: linear-gradient(180deg, #4e367f 0%, #322354 100%) !important;
   border: 1px solid rgba(255, 216, 77, 0.72) !important;
   box-shadow: 0 8px 28px rgba(255, 216, 77, 0.14) !important;
-  color: #fffaf0 !important;
+  color: var(--ink) !important;
 }
 
 #solace-chatbot .message.bot,
 #solace-chatbot .message.assistant,
 #solace-chatbot .bot-message {
-  background: linear-gradient(180deg, #173256 0%, #102440 100%) !important;
+  background: linear-gradient(180deg, #153961 0%, #10243f 100%) !important;
   border: 1px solid rgba(92, 169, 255, 0.56) !important;
   box-shadow: 0 8px 28px rgba(92, 169, 255, 0.12) !important;
   color: #f4f7ff !important;
@@ -664,7 +798,7 @@ body,
 
 #solace-chatbot .message.user *,
 #solace-chatbot .user-message * {
-  color: #fffaf0 !important;
+  color: var(--ink) !important;
 }
 
 #solace-chatbot .message.bot *,
@@ -692,13 +826,55 @@ body,
   margin: 0 !important;
 }
 
+#solace-chatbot .typing-loader {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+  min-height: 26px;
+  padding: 3px 1px;
+}
+
+#solace-chatbot .typing-loader span {
+  animation: solaceTyping 1.1s ease-in-out infinite;
+  background: #77e5ff !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 12px rgba(119, 229, 255, 0.48) !important;
+  display: inline-block;
+  height: 7px;
+  opacity: 0.38;
+  width: 7px;
+}
+
+#solace-chatbot .typing-loader span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+#solace-chatbot .typing-loader span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes solaceTyping {
+  0%,
+  80%,
+  100% {
+    opacity: 0.38;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
 .quick-row {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .quick-tool button,
 #send-button {
-  border-radius: 8px !important;
+  border-radius: 12px !important;
   font-weight: 760 !important;
 }
 
@@ -710,10 +886,11 @@ body,
 }
 
 .quick-tool button {
-  background: rgba(42, 28, 82, 0.94) !important;
-  border: 1px solid rgba(184, 146, 255, 0.44) !important;
-  color: var(--solace-text) !important;
-  min-height: 42px;
+  background: rgba(255, 255, 255, 0.075) !important;
+  border: 1px solid rgba(184, 146, 255, 0.36) !important;
+  color: var(--ink) !important;
+  min-height: 44px;
+  width: 100%;
 }
 
 .quick-tool button:hover {
@@ -724,10 +901,10 @@ body,
 #message-box textarea {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-    var(--solace-panel-strong) !important;
-  color: var(--solace-text) !important;
+    var(--console-strong) !important;
+  color: var(--ink) !important;
   border: 1px solid rgba(247, 240, 220, 0.24) !important;
-  border-radius: 8px !important;
+  border-radius: 14px !important;
 }
 
 #message-box textarea::placeholder {
@@ -743,8 +920,17 @@ footer {
     font-size: 30px;
   }
 
-  .emotion-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .solace-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .system-strip {
+    justify-content: flex-start;
+  }
+
+  .console-grid {
+    grid-template-columns: 1fr;
   }
 
   #solace-chatbot {
@@ -753,8 +939,14 @@ footer {
 }
 
 @media (max-width: 520px) {
-  .emotion-grid {
-    grid-template-columns: 1fr;
+  .solace-app {
+    padding: 12px;
+  }
+
+  .memory-logo {
+    flex-basis: 46px;
+    height: 46px;
+    width: 46px;
   }
 }
 """
@@ -762,19 +954,19 @@ footer {
 
 def emotion_indicator_html() -> str:
     emotions = [
-        ("Joy", "Savor", "var(--joy)"),
-        ("Sadness", "Reflect", "var(--sadness)"),
-        ("Fear/Anxiety", "Ground", "var(--fear)"),
-        ("Anger", "Pause", "var(--anger)"),
-        ("Disgust", "Reset", "var(--disgust)"),
+        ("Joy", "Savor and share", "J", "var(--joy)"),
+        ("Sadness", "Name and soften", "S", "var(--sadness)"),
+        ("Fear", "Ground and plan", "F", "var(--fear)"),
+        ("Anger", "Pause and protect", "A", "var(--anger)"),
+        ("Disgust", "Reset boundaries", "D", "var(--disgust)"),
     ]
 
     cards = []
-    for label, tone, color in emotions:
+    for label, tone, initial, color in emotions:
         cards.append(
             f"""
             <div class="emotion-card" style="--emotion: {color};">
-              <div class="emotion-core"></div>
+              <div class="emotion-avatar">{initial}</div>
               <div>
                 <div class="emotion-label">{label}</div>
                 <div class="emotion-tone">{tone}</div>
@@ -782,7 +974,20 @@ def emotion_indicator_html() -> str:
             </div>
             """
         )
-    return f'<div class="emotion-grid">{"".join(cards)}</div>'
+    orbs = "".join(
+        f'<div class="memory-orb" style="--orb: {color};"></div>'
+        for _, _, _, color in emotions
+    )
+    return f"""
+    <section class="side-console">
+      <div class="panel-title">
+        <span>Emotion Console</span>
+        <span class="pulse-dot"></span>
+      </div>
+      <div class="emotion-deck">{"".join(cards)}</div>
+      <div class="memory-rail">{orbs}</div>
+    </section>
+    """
 
 
 def build_demo() -> gr.Blocks:
@@ -797,75 +1002,100 @@ def build_demo() -> gr.Blocks:
             gr.HTML(
                 f"""
                 <header class="solace-header">
-                  <h1 class="solace-title">{APP_TITLE}</h1>
-                  <p class="solace-subtitle">{APP_SUBTITLE}</p>
+                  <div class="brand-mark">
+                    <div class="memory-logo"></div>
+                    <div>
+                      <h1 class="solace-title">{APP_TITLE}</h1>
+                      <p class="solace-subtitle">{APP_SUBTITLE}</p>
+                    </div>
+                  </div>
+                  <div class="system-strip">
+                    <span class="system-chip">Local LLM</span>
+                    <span class="system-chip">Emotion-aware</span>
+                    <span class="system-chip">Private session</span>
+                  </div>
                 </header>
                 """
             )
-            gr.HTML(emotion_indicator_html())
+            with gr.Row(elem_classes="console-grid", equal_height=True):
+                with gr.Column(scale=3, min_width=260):
+                    gr.HTML(emotion_indicator_html())
 
-            chatbot_kwargs: Dict[str, Any] = {
-                "label": "SolaceLLM",
-                "elem_id": "solace-chatbot",
-                "height": 540,
-            }
-            if supports_parameter(gr.Chatbot, "type"):
-                chatbot_kwargs["type"] = "messages"
-            if supports_parameter(gr.Chatbot, "show_copy_button"):
-                chatbot_kwargs["show_copy_button"] = True
-            elif supports_parameter(gr.Chatbot, "buttons"):
-                chatbot_kwargs["buttons"] = ["copy", "copy_all"]
+                    with gr.Column(elem_classes="quick-row"):
+                        quick_buttons = [
+                            gr.Button(label, elem_classes="quick-tool")
+                            for label in QUICK_PROMPTS
+                        ]
 
-            chatbot = gr.Chatbot(**chatbot_kwargs)
+                with gr.Column(scale=8, elem_classes="chat-shell"):
+                    gr.HTML(
+                        """
+                        <div class="chat-topbar">
+                          <div>
+                            <div class="chat-title">SolaceLLM Session</div>
+                            <div class="chat-meta">Guided emotional support</div>
+                          </div>
+                          <div class="system-chip">Streaming</div>
+                        </div>
+                        """
+                    )
 
-            with gr.Row(equal_height=True):
-                message_box = gr.Textbox(
-                    elem_id="message-box",
-                    placeholder="Tell Solace Space what is happening inside right now...",
-                    show_label=False,
-                    scale=7,
-                    lines=2,
-                    max_lines=5,
-                )
-                send_button = gr.Button("Send", elem_id="send-button", scale=1)
+                    chatbot_kwargs: Dict[str, Any] = {
+                        "label": "SolaceLLM",
+                        "elem_id": "solace-chatbot",
+                        "height": 560,
+                    }
+                    if supports_parameter(gr.Chatbot, "type"):
+                        chatbot_kwargs["type"] = "messages"
+                    if supports_parameter(gr.Chatbot, "show_copy_button"):
+                        chatbot_kwargs["show_copy_button"] = True
+                    elif supports_parameter(gr.Chatbot, "buttons"):
+                        chatbot_kwargs["buttons"] = ["copy", "copy_all"]
 
-            with gr.Row(elem_classes="quick-row"):
-                quick_buttons = [
-                    gr.Button(label, elem_classes="quick-tool")
-                    for label in QUICK_PROMPTS
-                ]
+                    chatbot = gr.Chatbot(**chatbot_kwargs)
 
-            clear_button = gr.ClearButton(
-                [message_box, chatbot],
-                value="Clear conversation",
-                variant="secondary",
-            )
+                    with gr.Row(equal_height=True):
+                        message_box = gr.Textbox(
+                            elem_id="message-box",
+                            placeholder="Tell Solace Space what is happening inside right now...",
+                            show_label=False,
+                            scale=8,
+                            lines=2,
+                            max_lines=5,
+                        )
+                        send_button = gr.Button("Send", elem_id="send-button", scale=1)
 
-            submit_event = message_box.submit(
-                add_user_message,
-                inputs=[message_box, chatbot],
-                outputs=[chatbot, message_box],
-                queue=False,
-            )
-            submit_event.then(generate_assistant_reply, inputs=chatbot, outputs=chatbot)
+                    clear_button = gr.ClearButton(
+                        [message_box, chatbot],
+                        value="Clear conversation",
+                        variant="secondary",
+                    )
 
-            click_event = send_button.click(
-                add_user_message,
-                inputs=[message_box, chatbot],
-                outputs=[chatbot, message_box],
-                queue=False,
-            )
-            click_event.then(generate_assistant_reply, inputs=chatbot, outputs=chatbot)
+                    submit_event = message_box.submit(
+                        add_user_message,
+                        inputs=[message_box, chatbot],
+                        outputs=[chatbot, message_box],
+                        queue=False,
+                    )
+                    submit_event.then(generate_assistant_reply, inputs=chatbot, outputs=chatbot)
 
-            for button, prompt in zip(quick_buttons, QUICK_PROMPTS.values()):
-                quick_event = button.click(
-                    partial(add_quick_prompt, prompt),
-                    inputs=chatbot,
-                    outputs=[chatbot, message_box],
-                    queue=False,
-                    show_progress="hidden",
-                )
-                quick_event.then(generate_assistant_reply, inputs=chatbot, outputs=chatbot)
+                    click_event = send_button.click(
+                        add_user_message,
+                        inputs=[message_box, chatbot],
+                        outputs=[chatbot, message_box],
+                        queue=False,
+                    )
+                    click_event.then(generate_assistant_reply, inputs=chatbot, outputs=chatbot)
+
+                    for button, prompt in zip(quick_buttons, QUICK_PROMPTS.values()):
+                        quick_event = button.click(
+                            partial(add_quick_prompt, prompt),
+                            inputs=chatbot,
+                            outputs=[chatbot, message_box],
+                            queue=False,
+                            show_progress="hidden",
+                        )
+                        quick_event.then(generate_assistant_reply, inputs=chatbot, outputs=chatbot)
 
     return demo
 
