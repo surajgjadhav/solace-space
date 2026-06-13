@@ -6,9 +6,17 @@ import inspect
 import logging
 import os
 import re
+import warnings
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Sequence, Tuple
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated.*",
+    category=Warning,
+    module=r"gradio\.routes",
+)
 
 import gradio as gr
 
@@ -25,7 +33,9 @@ except ImportError:  # pragma: no cover - surfaced in the UI at runtime.
 APP_TITLE = "Solace Space"
 APP_SUBTITLE = "Powered by SolaceLLM — Your Inside Out Emotional Companion"
 
-MODEL_PATH = Path(os.getenv("SOLACE_MODEL_PATH", "models/solace_llm_q4.gguf"))
+MODEL_PATH = os.getenv("SOLACE_MODEL_PATH", "").strip()
+MODEL_REPO = os.getenv("SOLACE_MODEL_REPO", "build-small-hackathon/solace-llm-GGUF").strip()
+MODEL_FILE_NAME = os.getenv("SOLACE_MODEL_FILE", "*Q4_K_M.gguf").strip()
 N_CTX = int(os.getenv("SOLACE_N_CTX", "2048"))
 MAX_TOKENS = int(os.getenv("SOLACE_MAX_TOKENS", "512"))
 TEMPERATURE = float(os.getenv("SOLACE_TEMPERATURE", "0.72"))
@@ -131,6 +141,29 @@ def contains_crisis_language(text: str) -> bool:
     return any(re.search(pattern, normalized) for pattern in CRISIS_PATTERNS)
 
 
+def extract_message_text(content: Any) -> str:
+    """Read text from plain and Gradio-normalized Chatbot message content."""
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        text_parts: List[str] = []
+        for item in content:
+            if isinstance(item, dict) and isinstance(item.get("text"), str):
+                text_parts.append(item["text"])
+            elif hasattr(item, "text") and isinstance(item.text, str):
+                text_parts.append(item.text)
+        return "\n".join(text_parts)
+
+    if isinstance(content, dict) and isinstance(content.get("text"), str):
+        return content["text"]
+
+    if hasattr(content, "text") and isinstance(content.text, str):
+        return content.text
+
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Model initialization and inference helpers
 # ---------------------------------------------------------------------------
@@ -148,15 +181,36 @@ def get_model() -> "Llama":
             "`pip install -r requirements.txt`."
         )
 
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"Model file not found at `{MODEL_PATH}`. Put your GGUF model there "
-            "or set SOLACE_MODEL_PATH=/path/to/model.gguf before launching."
+    if MODEL_PATH:
+        local_model_path = Path(MODEL_PATH).expanduser()
+        if not local_model_path.exists():
+            raise FileNotFoundError(
+                f"Model file not found at `{local_model_path}`. Put your GGUF model "
+                "there or set SOLACE_MODEL_PATH to the correct local file."
+            )
+
+        LOGGER.info("Loading SolaceLLM model from local file %s", local_model_path)
+        MODEL = Llama(
+            model_path=str(local_model_path),
+            n_ctx=N_CTX,
+            verbose=False,
+        )
+        return MODEL
+
+    if not MODEL_REPO:
+        raise RuntimeError(
+            "No model source configured. Set SOLACE_MODEL_PATH to a local GGUF file "
+            "or SOLACE_MODEL_REPO to a Hugging Face GGUF repository."
         )
 
-    LOGGER.info("Loading SolaceLLM model from %s", MODEL_PATH)
-    MODEL = Llama(
-        model_path=str(MODEL_PATH),
+    LOGGER.info(
+        "Loading SolaceLLM model from Hugging Face repo %s (%s)",
+        MODEL_REPO,
+        MODEL_FILE_NAME,
+    )
+    MODEL = Llama.from_pretrained(
+        repo_id=MODEL_REPO,
+        filename=MODEL_FILE_NAME,
         n_ctx=N_CTX,
         verbose=False,
     )
@@ -170,8 +224,15 @@ def normalize_history(history: Optional[Sequence[Any]]) -> List[Dict[str, str]]:
     for item in history or []:
         if isinstance(item, dict):
             role = item.get("role")
-            content = item.get("content")
-            if role in {"user", "assistant"} and isinstance(content, str):
+            content = extract_message_text(item.get("content"))
+            if role in {"user", "assistant"} and content.strip():
+                messages.append({"role": role, "content": content})
+            continue
+
+        if hasattr(item, "role") and hasattr(item, "content"):
+            role = getattr(item, "role")
+            content = extract_message_text(getattr(item, "content"))
+            if role in {"user", "assistant"} and content.strip():
                 messages.append({"role": role, "content": content})
             continue
 
@@ -277,16 +338,18 @@ def generate_assistant_reply(
         LOGGER.warning("SolaceLLM is not ready: %s", exc)
         messages[-1]["content"] = (
             "I couldn't reach SolaceLLM locally yet. "
-            f"{exc}\n\nCheck that `SOLACE_MODEL_PATH` points to a GGUF model and "
-            "that `llama-cpp-python` is installed."
+            f"{exc}\n\nCheck that `llama-cpp-python` is installed and either "
+            "`SOLACE_MODEL_PATH` points to a local GGUF file or `SOLACE_MODEL_REPO` "
+            "points to a Hugging Face GGUF repo."
         )
         yield messages
     except Exception as exc:  # pragma: no cover - depends on local runtime setup.
         LOGGER.exception("Unable to generate a SolaceLLM response")
         messages[-1]["content"] = (
             "I couldn't reach SolaceLLM locally yet. "
-            f"{exc}\n\nCheck that `SOLACE_MODEL_PATH` points to a GGUF model and "
-            "that `llama-cpp-python` is installed."
+            f"{exc}\n\nCheck that `llama-cpp-python` is installed and either "
+            "`SOLACE_MODEL_PATH` points to a local GGUF file or `SOLACE_MODEL_REPO` "
+            "points to a Hugging Face GGUF repo."
         )
         yield messages
 

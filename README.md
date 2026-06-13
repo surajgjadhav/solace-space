@@ -17,13 +17,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-3. Place your local model at the default path:
+3. By default, the app loads the GGUF model from Hugging Face:
 
 ```text
-models/solace_llm_q4.gguf
+build-small-hackathon/solace-llm-GGUF
 ```
 
-You can also point to another GGUF file:
+You can also point to a local GGUF file:
 
 ```bash
 export SOLACE_MODEL_PATH=/absolute/path/to/your-model.gguf
@@ -41,7 +41,9 @@ The app launches with `demo.queue().launch()` and prints a local Gradio URL in t
 
 Optional environment variables:
 
-- `SOLACE_MODEL_PATH`: local GGUF model path. Defaults to `models/solace_llm_q4.gguf`.
+- `SOLACE_MODEL_PATH`: optional local GGUF model path. When set, this takes priority over the Hugging Face repo.
+- `SOLACE_MODEL_REPO`: Hugging Face GGUF repo. Defaults to `build-small-hackathon/solace-llm-GGUF`.
+- `SOLACE_MODEL_FILE`: GGUF filename or glob inside the repo. Defaults to `*Q4_K_M.gguf`.
 - `SOLACE_N_CTX`: context window. Defaults to `2048`.
 - `SOLACE_MAX_TOKENS`: maximum generated tokens per reply. Defaults to `512`.
 - `SOLACE_TEMPERATURE`: sampling temperature. Defaults to `0.72`.
