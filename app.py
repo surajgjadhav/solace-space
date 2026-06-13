@@ -37,10 +37,20 @@ MODEL_PATH = os.getenv("SOLACE_MODEL_PATH", "").strip()
 MODEL_REPO = os.getenv("SOLACE_MODEL_REPO", "build-small-hackathon/solace-llm-GGUF").strip()
 MODEL_FILE_NAME = os.getenv("SOLACE_MODEL_FILE", "*Q4_K_M.gguf").strip()
 N_CTX = int(os.getenv("SOLACE_N_CTX", "2048"))
-MAX_TOKENS = int(os.getenv("SOLACE_MAX_TOKENS", "512"))
+MAX_TOKENS = int(os.getenv("SOLACE_MAX_TOKENS", "220"))
 TEMPERATURE = float(os.getenv("SOLACE_TEMPERATURE", "0.72"))
 TOP_P = float(os.getenv("SOLACE_TOP_P", "0.92"))
-MAX_HISTORY_MESSAGES = int(os.getenv("SOLACE_MAX_HISTORY_MESSAGES", "16"))
+REPEAT_PENALTY = float(os.getenv("SOLACE_REPEAT_PENALTY", "1.15"))
+FREQUENCY_PENALTY = float(os.getenv("SOLACE_FREQUENCY_PENALTY", "0.15"))
+PRESENCE_PENALTY = float(os.getenv("SOLACE_PRESENCE_PENALTY", "0.05"))
+MAX_REPEATED_SENTENCES = int(os.getenv("SOLACE_MAX_REPEATED_SENTENCES", "2"))
+HISTORY_TOKEN_BUFFER = int(os.getenv("SOLACE_HISTORY_TOKEN_BUFFER", "128"))
+MALFORMED_OUTPUT_PATTERNS = [
+    r"\\input\s*\{",
+    r"\\begin\s*\{",
+    r"\\end\s*\{",
+    r"^\s*\\item\b",
+]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger("solace-space")
@@ -62,28 +72,46 @@ def supports_parameter(callable_obj: Any, parameter_name: str) -> bool:
 
 SYSTEM_PROMPT = """You are SolaceLLM, the local model behind Solace Space.
 
-You are a compassionate, emotionally attuned peer companion. You are not a
-therapist, doctor, crisis worker, or diagnostic tool. Never diagnose the user
-or claim to provide treatment. Instead, listen closely, reflect feelings in a
-warm and concrete way, ask gentle questions, and help the user find one small
-next step.
+You are a compassionate emotional-support companion with a counseling-style
+tone. You are not a licensed therapist, doctor, crisis worker, or diagnostic
+tool. Do not diagnose the user, prescribe treatment, or claim to replace
+professional care. You may provide reflective support, coping strategies,
+communication guidance, and practical next steps.
+
+Your goal is to understand the user's situation and feeling, then help them
+work with the emotion in a grounded way. Respond like a calm consultation:
+1. Name and validate the likely feeling in plain language.
+2. Reflect the concrete situation the user described so they feel understood.
+3. Ask at most one gentle clarifying question only if it would help.
+4. Offer 1-3 practical next steps, exercises, or reframes the user can try now.
+5. End with a small, doable action or supportive check-in.
 
 Adapt dynamically to the user's emotional state:
-- If the user sounds joyful or proud, match their warmth, celebrate with them,
-  and invite them to savor or share the moment.
-- If the user sounds sad, respond softly, validate the feeling, and offer
-  reflective prompts without rushing them toward positivity.
-- If the user sounds anxious or fearful, slow the pace, name grounding options,
-  and offer brief breathing or sensory exercises.
-- If the user sounds angry, acknowledge the heat without escalating, help them
-  separate the feeling from the next action, and suggest a pause.
-- If the user sounds disgusted, ashamed, or overwhelmed, respond with steadiness,
-  normalize the feeling without judgment, and help them choose a boundary or
-  reset.
+- Fear or anxiety: slow the pace, reduce uncertainty, suggest grounding,
+  breathing, sensory orientation, planning the next controllable step, or
+  separating facts from feared possibilities.
+- Anger: validate the boundary or hurt underneath the anger, discourage
+  impulsive escalation, suggest pausing, naming the need, and choosing a
+  values-aligned response.
+- Sadness or grief: be gentle and unhurried. Validate loss, disappointment, or
+  heaviness. Offer reflection, self-compassion, reaching out, rest, or one small
+  care task without forcing positivity.
+- Shame, disgust, or overwhelm: respond without judgment. Normalize the body
+  reaction, help the user find safety, boundaries, cleanup/reset steps, or a way
+  to talk to themselves more kindly.
+- Joy, pride, relief, or happiness: participate warmly. Help the user savor the
+  moment, name what it says about their values or effort, share it with someone
+  safe, and channel the energy into gratitude, creativity, connection, or a next
+  meaningful step.
 
-Keep responses concise, emotionally specific, and conversational. Use practical
-coping tools only when they fit. Do not mention being inspired by any movie or
-fictional character unless the user brings that up.
+For pet, family, health, work, or relationship stress, do not pretend to know
+outcomes. Acknowledge uncertainty and focus on what the user can do while
+waiting: breathing, asking useful questions, preparing, resting, contacting a
+support person, or taking the next practical step.
+
+Keep responses conversational, specific, and concise. Avoid repeated phrases,
+generic endings, excessive disclaimers, bullet overload, or long lectures. Do
+not include math, code, LaTeX, templates, roleplay markup, or hidden reasoning.
 
 Important safety rule: if the user may be in immediate danger or mentions
 self-harm, suicide, harming others, overdose, or being unable to stay safe, the
@@ -226,6 +254,8 @@ def normalize_history(history: Optional[Sequence[Any]]) -> List[Dict[str, str]]:
             role = item.get("role")
             content = extract_message_text(item.get("content"))
             if role in {"user", "assistant"} and content.strip():
+                if role == "assistant" and contains_malformed_output(content):
+                    continue
                 messages.append({"role": role, "content": content})
             continue
 
@@ -233,6 +263,8 @@ def normalize_history(history: Optional[Sequence[Any]]) -> List[Dict[str, str]]:
             role = getattr(item, "role")
             content = extract_message_text(getattr(item, "content"))
             if role in {"user", "assistant"} and content.strip():
+                if role == "assistant" and contains_malformed_output(content):
+                    continue
                 messages.append({"role": role, "content": content})
             continue
 
@@ -246,9 +278,62 @@ def normalize_history(history: Optional[Sequence[Any]]) -> List[Dict[str, str]]:
     return messages
 
 
-def build_messages(history: Sequence[Dict[str, str]]) -> List[Dict[str, str]]:
+def estimate_token_count(text: str) -> int:
+    """Cheap token estimate used before the model tokenizer is loaded."""
+    return max(1, (len(text) + 3) // 4)
+
+
+def count_text_tokens(text: str, model: Optional["Llama"] = None) -> int:
+    """Count tokens with llama-cpp when available, otherwise estimate."""
+    if model is not None and hasattr(model, "tokenize"):
+        try:
+            return max(1, len(model.tokenize(text.encode("utf-8"), add_bos=False)))
+        except Exception:
+            LOGGER.debug("Falling back to estimated token count", exc_info=True)
+
+    return estimate_token_count(text)
+
+
+def message_token_cost(message: Dict[str, str], model: Optional["Llama"] = None) -> int:
+    """Estimate token cost for a role-tagged chat message."""
+    return count_text_tokens(message["content"], model) + 8
+
+
+def available_history_tokens() -> int:
+    """Reserve room for generation and formatting inside the model context."""
+    return max(256, N_CTX - MAX_TOKENS - HISTORY_TOKEN_BUFFER)
+
+
+def trim_history_to_context(
+    history: Sequence[Dict[str, str]],
+    model: Optional["Llama"] = None,
+) -> List[Dict[str, str]]:
+    """Keep as much recent history as fits instead of slicing by message count."""
+    budget = available_history_tokens()
+    selected_reversed: List[Dict[str, str]] = []
+    used_tokens = count_text_tokens(SYSTEM_PROMPT, model)
+
+    for message in reversed(list(history)):
+        cost = message_token_cost(message, model)
+        if selected_reversed and used_tokens + cost > budget:
+            break
+
+        selected_reversed.append(message)
+        used_tokens += cost
+
+    selected = list(reversed(selected_reversed))
+    while len(selected) > 1 and selected[0]["role"] != "user":
+        selected.pop(0)
+
+    return selected
+
+
+def build_messages(
+    history: Sequence[Dict[str, str]],
+    model: Optional["Llama"] = None,
+) -> List[Dict[str, str]]:
     """Build llama-cpp chat messages with a bounded conversational window."""
-    recent_history = list(history)[-MAX_HISTORY_MESSAGES:]
+    recent_history = trim_history_to_context(history, model)
     return [{"role": "system", "content": SYSTEM_PROMPT}, *recent_history]
 
 
@@ -271,20 +356,80 @@ def extract_stream_delta(chunk: Dict[str, Any]) -> str:
     return text if isinstance(text, str) else ""
 
 
+def normalize_sentence_for_repeat_check(sentence: str) -> str:
+    """Normalize generated text to catch low-value repetition loops."""
+    normalized = re.sub(r"\s+", " ", sentence.strip().lower())
+    return normalized.strip(" .!?,;:\"'`")
+
+
+def should_stop_for_repetition(text: str) -> bool:
+    """Detect repeated sentence loops during streaming generation."""
+    if MAX_REPEATED_SENTENCES <= 0:
+        return False
+
+    sentences = re.findall(r"[^.!?\n]+[.!?]", text)
+    counts: Dict[str, int] = {}
+
+    for sentence in sentences:
+        normalized = normalize_sentence_for_repeat_check(sentence)
+        if len(normalized) < 12:
+            continue
+
+        counts[normalized] = counts.get(normalized, 0) + 1
+        if counts[normalized] > MAX_REPEATED_SENTENCES:
+            return True
+
+    lines = [normalize_sentence_for_repeat_check(line) for line in text.splitlines()]
+    repeated_lines = 0
+    previous_line = ""
+    for line in lines:
+        if len(line) < 12:
+            continue
+        if line == previous_line:
+            repeated_lines += 1
+            if repeated_lines >= MAX_REPEATED_SENTENCES:
+                return True
+        else:
+            previous_line = line
+            repeated_lines = 0
+
+    return False
+
+
+def contains_malformed_output(text: str) -> bool:
+    """Detect formatting/control artifacts that should never appear in this chat."""
+    return any(
+        re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
+        for pattern in MALFORMED_OUTPUT_PATTERNS
+    )
+
+
 def stream_model_reply(history: Sequence[Dict[str, str]]) -> Iterable[str]:
     """Yield SolaceLLM response text chunks for the current chat history."""
     model = get_model()
     stream = model.create_chat_completion(
-        messages=build_messages(history),
+        messages=build_messages(history, model),
         temperature=TEMPERATURE,
         top_p=TOP_P,
         max_tokens=MAX_TOKENS,
+        repeat_penalty=REPEAT_PENALTY,
+        frequency_penalty=FREQUENCY_PENALTY,
+        presence_penalty=PRESENCE_PENALTY,
         stream=True,
     )
 
+    generated_text = ""
     for chunk in stream:
         delta = extract_stream_delta(chunk)
         if delta:
+            candidate_text = generated_text + delta
+            if contains_malformed_output(candidate_text):
+                LOGGER.warning("Stopping generation because malformed output was detected")
+                break
+            if should_stop_for_repetition(candidate_text):
+                LOGGER.warning("Stopping generation because repeated text was detected")
+                break
+            generated_text = candidate_text
             yield delta
 
 
