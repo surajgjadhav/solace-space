@@ -3,8 +3,8 @@ title: Solace Space
 emoji: 💛
 colorFrom: yellow
 colorTo: blue
-sdk: gradio
-sdk_version: 5.0.0
+sdk: docker
+app_port: 7860
 python_version: 3.10
 app_file: app.py
 fullWidth: true
@@ -35,7 +35,7 @@ is built and displayed.
 
 Important Space settings used here:
 
-- `sdk: gradio`: runs the project as a Gradio Space.
+- `sdk: docker`: runs the project as a Docker Space.
 - `app_file: app.py`: uses `app.py` as the launch entrypoint.
 - `python_version: 3.10`: asks Hugging Face to run the Space with Python 3.10.
 - `sdk_version: 5.0.0`: pins the Gradio runtime family used by the Space.
