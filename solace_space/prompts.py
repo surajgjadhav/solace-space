@@ -73,17 +73,20 @@ CRISIS_PATTERNS = [
     r"\bkill someone\b",
 ]
 
-CRISIS_MESSAGE = """I'm really sorry you're carrying this. I can't safely handle this as an ordinary chat.
-
-If you might act on this soon, call emergency services now or go to the nearest emergency room. If you can, move near another person and tell them plainly: "I may not be safe alone right now."
-
-You can also contact a crisis line:
-- US and Canada: call or text 988
-- UK and Republic of Ireland: Samaritans at 116 123
-- India: KIRAN at 1800-599-0019, or emergency services at 112
-
-If you're not in immediate danger, please still reach out to a trusted person or local mental health professional right now. You deserve real support in this moment."""
-
+CRISIS_MESSAGE = (
+    "It sounds like you are going through an incredibly difficult time, "
+    "but please know that you do not have to carry this alone. I am an AI companion, "
+    "not a clinical tool, and I cannot provide the professional crisis support you deserve.\n\n"
+    "Please reach out to an official, free, and confidential helpline immediately:\n\n"
+    "**INDIA (Tele-MANAS - Govt. Initiative):**\n"
+    "• Dial **14416** or **1800-891-4416** (Available 24/7)\n\n"
+    "**UNITED STATES (Suicide & Crisis Lifeline):**\n"
+    "• Dial or Text **988** (Available 24/7)\n\n"
+    "**UNITED KINGDOM (NHS & Samaritans):**\n"
+    "• Dial **111** and select the Mental Health Option (NHS 24/7)\n"
+    "• Call **116 123** to talk to Samaritans\n\n"
+    "Free, human support is available right now. Please connect with them or a trusted professional."
+)
 
 QUICK_PROMPTS = {
     "Ground Fear": (
